@@ -5,6 +5,11 @@ class VoiceMailMain implements ApplicationInterface
 {
     use StandardApplicationTrait;
 
+    const SKIP_PASSWORD = 's';
+    const MAIILBOX_AS_PREFIX = 'p';
+    const GAIN_AMOUNT = 'g({option_value})';
+    const START_WITH_FOLDER = 'a({option_value})';
+
     /**
      * @var string
      */
@@ -16,7 +21,20 @@ class VoiceMailMain implements ApplicationInterface
     protected $context;
 
     /**
-     * @var string
+     * $options could be an array containing separate options or key => value pairs of options (as a key) and its arguments
+     * ```php
+     *  [
+     *      self::SKIP_PASSWORD,
+     *      self::GAIN_AMOUNT => 3,
+     *      self::START_WITH_FOLDER => 1,
+     *  ];
+     * ```
+     * Also $options could be a string of single or multiple comma separated options
+     * ```php
+     *  self::SKIP_PASSWORD
+     *  's,p,a(0)'
+     * ```
+     * @var array|string
      */
     protected $options;
 
@@ -55,7 +73,21 @@ class VoiceMailMain implements ApplicationInterface
      */
     public function getOptions()
     {
-        return $this->options;
+        if (is_array($this->options)) {
+            $options = [];
+            foreach ($this->options as $key => $option) {
+                if (is_numeric($key)) {
+                    $options[] = $option;
+                } else {
+                    if (in_array($key, [self::GAIN_AMOUNT, self::START_WITH_FOLDER])) {
+                        $options[] = strtr($key, ['{option_value}' => $option]);
+                    }
+                }
+            }
+            return implode(',', $options);
+        } else {
+            return $this->options;
+        }
     }
 
     /**
@@ -76,7 +108,7 @@ class VoiceMailMain implements ApplicationInterface
      */
     public function getData()
     {
-        return "{$this->mailbox}@{$this->context},{$this->options}";
+        return "{$this->mailbox}@{$this->context},{$this->getOptions()}";
     }
 
     /**
